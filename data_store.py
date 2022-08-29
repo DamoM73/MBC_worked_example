@@ -14,7 +14,8 @@ def create_database():
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS Postcode(
-            postcode TEXT PRIMARY KEY
+            postcode TEXT PRIMARY KEY,
+            state TEXT NOT NULL
         )        
         """
     )
@@ -57,54 +58,38 @@ def get_postcodes():
     uses cursor to add postcodes from the postcode csv file
     cur: sqlite3 database cursor object
     """
+    print("Processing postcodes")
     with open(POSTCODES) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=",")
         
-        prev_postcode = ""
-        code_id = 0
-        
+        postcodes = []
         
         # read each row of the csv file
         for row in csv_reader:
             if row[0] != "postcode":
                 postcode = row[0]
                 suburb = row[1]
-                if postcode != prev_postcode:
-                    add_postcode(postcode)
-                    prev_postcode = postcode
+                state = row[3]
+                if postcode not in postcodes:
+                    add_postcode(postcode,state)
+                    postcodes.append(postcode)
                 add_suburb(postcode, suburb)
 
 
-def get_code_id(postcode):
+
+def add_postcode(postcode,state):
     # connect to the databse and establish the cursor
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
     
     cur.execute(
         """
-        SELECT code_id
-        FROM Postcode
-        WHERE postcode = :postcode
+        INSERT INTO Postcode (postcode,state)
+        VALUES (:postcode,:state)
         """,
         {
-            "postcode":postcode
-        }
-    )
-
-
-def add_postcode(postcode):
-    # connect to the databse and establish the cursor
-    print("Processing postcodes")
-    conn = sqlite3.connect(DATABASE)
-    cur = conn.cursor()
-    
-    cur.execute(
-        """
-        INSERT INTO Postcode (postcode)
-        VALUES (:postcode)
-        """,
-        {
-            "postcode":postcode
+            "postcode":postcode,
+            "state":state
         }
     )
     conn.commit()
